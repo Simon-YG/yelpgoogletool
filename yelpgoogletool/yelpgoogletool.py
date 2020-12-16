@@ -500,7 +500,7 @@ def Where2Eat(yelp_key = yelp_key, google_key = google_key):
                            ". Do you want to search restaurants near this location? (Y/N)\n")
     assert location_check in ['Y','N'], "invalid input!"
     if location_check == "Y":
-        coord_or_name == '1'
+        coord_or_name = '1'
         latitude = currentloc.latlng[0]
         longitude = currentloc.latlng[1]
     if location_check == "N":
