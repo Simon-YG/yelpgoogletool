@@ -1,0 +1,808 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>yelpgoogletool.yelpgoogletool &#8212; yelpgoogletool  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for yelpgoogletool.yelpgoogletool</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">geocoder</span>
+<span class="kn">import</span> <span class="nn">getpass</span>
+
+<span class="n">google_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;POETRY_GOOGLE_KEY&quot;</span><span class="p">)</span>
+<span class="n">yelp_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;POETRY_YELP_KEY&quot;</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">max_colwidth</span> <span class="o">=</span> <span class="mi">300</span>
+
+
+<span class="k">if</span> <span class="n">google_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">google_key</span> <span class="o">=</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;Please input your Google API key.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">yelp_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">yelp_key</span> <span class="o">=</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;Please input your Yelp Fusion API key.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+
+<div class="viewcode-block" id="ParsingAddress"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.ParsingAddress">[docs]</a><span class="k">def</span> <span class="nf">ParsingAddress</span><span class="p">(</span><span class="n">raw_location_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A supporting function that parses the raw location info from Yelp Fusion API to make it more readable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    raw_location_list : pandas.core.series.Series</span>
+<span class="sd">      Required. A pd.Series of dictionaries containing address information in the JSON output from Fusion API.</span>
+<span class="sd">   </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.core.series.Series</span>
+<span class="sd">      A list that stores more readable result. A typical element from the output list is a string of format: &quot;&lt;street address&gt;, &lt;City&gt;, &lt;State&gt; &lt;ZIP code&gt;&quot;. E.g. &quot;509 Amsterdam Ave, New York, NY 10024&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">location_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">raw_location</span> <span class="ow">in</span> <span class="n">raw_location_list</span><span class="p">:</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">raw_location</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">temp_location</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">location_list</span> <span class="o">=</span> <span class="n">location_list</span> <span class="o">+</span> <span class="p">[</span><span class="n">temp_location</span><span class="p">]</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">location_list</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SearchRestaurant"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.SearchRestaurant">[docs]</a><span class="k">def</span> <span class="nf">SearchRestaurant</span><span class="p">(</span><span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">,</span>
+                     <span class="n">searching_keywords</span> <span class="o">=</span> <span class="s2">&quot;restaurant&quot;</span><span class="p">,</span>
+                     <span class="n">location</span> <span class="o">=</span> <span class="s2">&quot;Union Square, New York, NY 10003&quot;</span><span class="p">,</span>
+                     <span class="n">longitude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                     <span class="n">latitude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                     <span class="n">distance_max</span> <span class="o">=</span> <span class="mi">15000</span><span class="p">,</span>
+                     <span class="n">list_len</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+                     <span class="n">price</span> <span class="o">=</span> <span class="s2">&quot;1,2,3,4&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform restaurant searching on Yelp.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    yelp_key : str</span>
+<span class="sd">      Optional. The API key for Yelp fusion API.</span>
+<span class="sd">    searching_keywords : str</span>
+<span class="sd">      Optional. The keywords for Yelp searching. If not specified, the general term &quot;restaurant&quot; is searched.</span>
+<span class="sd">    location : str</span>
+<span class="sd">      Optional. A string describe the address of the location around which the search is conducted.</span>
+<span class="sd">    longitude : float</span>
+<span class="sd">      Required if location is not specified. The longitude of the current location.</span>
+<span class="sd">    latitude : float</span>
+<span class="sd">      Required if location is not specified. The latitude of the current location.</span>
+<span class="sd">    distance_max : int</span>
+<span class="sd">      Optional. A suggested search radius in meters.</span>
+<span class="sd">    list_len : int</span>
+<span class="sd">      Optional. The number of restaurants to show in the resulting dataframe.</span>
+<span class="sd">    price : str</span>
+<span class="sd">      Optional. Pricing levels to filter the search result with: 1 = $, 2 = $$, 3 = $$$, 4 = $$$$.</span>
+<span class="sd">      The price filter can be a list of comma delimited pricing levels. For example, &quot;1, 2, 3&quot; will</span>
+<span class="sd">      filter the results to show the ones that are $, $$, or $$$.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.core.frame.DataFrame</span>
+<span class="sd">      A dataframe that include essential information about the restaurants in the resarching result.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from yelpgoogletool import yelpgoogletool</span>
+<span class="sd">    &gt;&gt;&gt; yelpgoogletool.SearchRestaurant(location = &quot;Columbia University, NYC&quot;,list_len=2)</span>
+<span class="sd">                             name                      id  distance                               location price         phone  rating  review_count</span>
+<span class="sd">    0  The Tang - Upper West Side  TzhAlljC_843JO7UDDUIaQ       0.6  920 Amsterdam Ave, New York, NY 10025    $$  +16465967970     4.5           215</span>
+<span class="sd">    1                  Calle Ocho  H9GD7km7riFooM0FkdwOPg       0.5      2756 Broadway, New York, NY 10025    $$  +12128735025     4.0          2527</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    
+    <span class="c1"># Check whether the parameters are of valid type</span>
+    <span class="n">longlat_input_checker</span> <span class="o">=</span> <span class="p">(</span><span class="n">longitude</span> <span class="o">==</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">latitude</span> <span class="o">==</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">searching_keywords</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;The parameter &#39;searching_keywords&#39; should be a string!&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">location</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;The parameter &#39;location&#39; should be a string!&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">longitude</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">longitude</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">),</span> <span class="s2">&quot;The parameter &#39;longitude&#39; should be a float!&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">latitude</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">latitude</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">),</span> <span class="s2">&quot;The parameter &#39;latitude&#39; should be a float!&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">distance_max</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;The parameter &#39;distance_max&#39; should be an integer!&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">list_len</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;The parameter &#39;list_len&#39; should be an integer!&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">price</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">price</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;The parameter &#39;price&#39; should be a str representing price levels, e.g. &#39;1,2,3&#39;!&quot;</span>
+    
+    <span class="c1"># Check whether longitude and latitude are speciefied or not specified at the same time</span>
+    <span class="k">assert</span> <span class="n">longlat_input_checker</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Either both or neither of &#39;longitude&#39; and &#39;latitude&#39; should be specified!&quot;</span>
+    
+    <span class="c1"># Check whether some parameters are off limit</span>
+    <span class="k">assert</span> <span class="n">distance_max</span> <span class="o">&lt;=</span> <span class="mi">20000</span><span class="p">,</span> <span class="s2">&quot;You do not want to travel more than 20 km for your dinner!&quot;</span>
+    <span class="k">assert</span> <span class="n">list_len</span> <span class="o">&lt;=</span> <span class="mi">500</span><span class="p">,</span> <span class="s2">&quot;The length of searching result list should be no more than 500!&quot;</span>
+    
+     <span class="c1"># Set the parameters for API queries</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://api.yelp.com/v3/businesses/search&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Authorization&quot;</span><span class="p">:</span><span class="n">yelp_key</span><span class="p">}</span>
+    <span class="n">querystring</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;term&quot;</span><span class="p">:</span><span class="n">searching_keywords</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">longlat_input_checker</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">longitude</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">180</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">latitude</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">180</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">longitude</span> <span class="o">&lt;=</span> <span class="mi">180</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">latitude</span> <span class="o">&lt;=</span> <span class="mi">180</span><span class="p">),</span> <span class="s2">&quot;Invalid &#39;longitude&#39; or &#39;latitude&#39;&quot;</span>
+        <span class="k">if</span> <span class="n">location</span> <span class="o">!=</span> <span class="s2">&quot;Union Square, New York, NY 10003&quot;</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The parameter &#39;location&#39; is not used when longitude and latitude are specified.&quot;</span><span class="p">)</span>
+        <span class="n">querystring</span><span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">longitude</span>
+        <span class="n">querystring</span><span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">latitude</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">querystring</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">location</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">price</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">querystring</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">price</span>
+    <span class="c1"># Set offset to be the number of records that has already been searched</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">df_restaurant_list</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">offset</span> <span class="o">&lt;</span> <span class="n">list_len</span><span class="p">:</span>
+        <span class="c1"># This is the number of records to search in this batch</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">list_len</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+        <span class="n">querystring</span><span class="p">[</span><span class="s2">&quot;limit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
+        <span class="n">querystring</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">offset</span>
+        <span class="c1"># request data from Fusion API</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">querystring</span><span class="p">)</span>
+        <span class="n">rspn_json</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="c1">#if rspn_json</span>
+        <span class="c1"># merge the data into df_restaurant_list</span>
+        <span class="k">for</span> <span class="n">business</span> <span class="ow">in</span> <span class="n">rspn_json</span><span class="p">[</span><span class="s1">&#39;businesses&#39;</span><span class="p">]:</span>
+            <span class="n">df_restaurant_list</span> <span class="o">=</span> <span class="n">df_restaurant_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">business</span><span class="p">),</span><span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Update the offset variable</span>
+        <span class="n">offset</span> <span class="o">+=</span> <span class="n">limit</span>
+        
+        <span class="n">df_restaurant_list</span> <span class="o">=</span> <span class="n">df_restaurant_list</span><span class="p">[[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;id&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;distance&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;location&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;price&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;phone&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;rating&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;review_count&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+                                                       <span class="n">location</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">ParsingAddress</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">location</span><span class="p">),</span>
+                                                       <span class="n">review_count</span> <span class="o">=</span> <span class="n">df_restaurant_list</span><span class="p">[</span><span class="s1">&#39;review_count&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+                                                       <span class="n">distance</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">df_restaurant_list</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">]</span><span class="o">/</span><span class="mi">1609</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        
+    <span class="k">return</span><span class="p">(</span><span class="n">df_restaurant_list</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ExactRestaurantID"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.ExactRestaurantID">[docs]</a><span class="k">def</span> <span class="nf">ExactRestaurantID</span><span class="p">(</span><span class="n">restaurant_name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">yelp_key</span><span class="o">=</span><span class="n">yelp_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Search the unique id of a restaurant by its name and location.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    restaurant_name : str</span>
+<span class="sd">      Required. The name of the restaurant. Do not need to be exact.</span>
+<span class="sd">    location : str</span>
+<span class="sd">      Optional. A string describe the address of the location around which the search is conducted.</span>
+<span class="sd">    yelp_key : str</span>
+<span class="sd">      Optional. The API key for Yelp fusion API.</span>
+<span class="sd">      </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">      A string that serves as the identifier of the restaurant of interest.</span>
+<span class="sd">    </span>
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; from yelpgoogletool import yelpgoogletool</span>
+<span class="sd">    &gt;&gt;&gt; yelpgoogletool.ExactRestaurantID(&quot;Peter Luger&quot;,&quot;NYC&quot;)</span>
+<span class="sd">                                       name                                      location</span>
+<span class="sd">    0                           Peter Luger              178 Broadway, Brooklyn, NY 11211</span>
+<span class="sd">    1               Peter Luger Steak House       255 Northern Blvd, Great Neck, NY 11021</span>
+<span class="sd">    2  Del Frisco&#39;s Double Eagle Steakhouse  1221 Ave Of The Americas, New York, NY 10020</span>
+<span class="sd">    3                DeStefano&#39;s Steakhouse           89 Conselyea St, Brooklyn, NY 11211</span>
+<span class="sd">    4                 Wolfgang&#39;s Steakhouse                4 Park Ave, New York, NY 10016</span>
+<span class="sd">    Is the desired restaurant in the list above? (Y/N)</span>
+<span class="sd">    Y</span>
+<span class="sd">    Please input the index at the beginning of the row corresponding to the desired restaurant.</span>
+<span class="sd">    0</span>
+<span class="sd">    Restaurant found!</span>
+<span class="sd">    &#39;4yPqqJDJOQX69gC66YUDkA&#39;</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Set the parameters for API queries</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://api.yelp.com/v3/businesses/search&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Authorization&quot;</span><span class="p">:</span><span class="n">yelp_key</span><span class="p">}</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="s2">&quot;N&quot;</span>
+    <span class="n">restaurants_searched</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">found</span> <span class="o">!=</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+        <span class="n">querystring</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;term&quot;</span><span class="p">:</span><span class="n">restaurant_name</span><span class="p">,</span> <span class="s2">&quot;limit&quot;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span><span class="n">location</span><span class="p">,</span><span class="s2">&quot;offset&quot;</span><span class="p">:</span><span class="n">restaurants_searched</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">querystring</span><span class="p">)</span>
+        <span class="n">restaurants_searched</span> <span class="o">+=</span> <span class="mi">5</span>
+        <span class="n">rspn_json</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="c1">#if rspn_json</span>
+        <span class="c1"># merge the data into df_restaurant_list</span>
+        <span class="n">df_restaurant_list</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">business</span> <span class="ow">in</span> <span class="n">rspn_json</span><span class="p">[</span><span class="s1">&#39;businesses&#39;</span><span class="p">]:</span>
+            <span class="n">df_restaurant_list</span> <span class="o">=</span> <span class="n">df_restaurant_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">business</span><span class="p">),</span><span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">df_restaurant_list_clean</span> <span class="o">=</span> <span class="n">df_restaurant_list</span><span class="p">[[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="s1">&#39;location&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">ParsingAddress</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">location</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">df_restaurant_list_clean</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Is the desired restaurant in the list above? (Y/N)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">found</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Please input the index at the beginning of the row corresponding to the desired restaurant.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">restaurant_id</span> <span class="o">=</span> <span class="n">df_restaurant_list</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n\n\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">restaurants_searched</span> <span class="o">%</span> <span class="mi">15</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">restart</span> <span class="o">=</span> <span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Do you want to exit the current search and refine the searching term? (Y/N)&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">,</span><span class="s2">&quot;y&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">restart</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Current searching is terminated&quot;</span><span class="p">)</span>
+                <span class="k">return</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Restaurant found!&quot;</span><span class="p">)</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">restaurant_id</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="FindBestRestaurants"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.FindBestRestaurants">[docs]</a><span class="k">def</span> <span class="nf">FindBestRestaurants</span><span class="p">(</span><span class="n">list_of_restaurants</span><span class="p">,</span> <span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;rating and review count&quot;</span><span class="p">,</span> <span class="n">result_len</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sort a list of restaurants and return the top choices.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    list_of_restaurants : pandas.core.frame.DataFrame</span>
+<span class="sd">      Required. A dataframe of restaurants from which the best ones are looked for. A typical choice is the output from `SearchingRestaurant()` function.</span>
+<span class="sd">    by : str</span>
+<span class="sd">      Optional. A string represent the criterion of sorting. The details are as follows:</span>
+<span class="sd">        - &quot;rating and review counts&quot;: sort by the Yelp rating. In the case that ratings are tied, use the number of reviews as the second criterion;</span>
+<span class="sd">        - &quot;rating and distance&quot;: sort by the Yelp rating. In the case that ratings are tied, use the distance to current location as the second criterion;</span>
+<span class="sd">        - &quot;review count&quot;: sort by the number of reviews;</span>
+<span class="sd">        - &quot;distance&quot;: sort by the distance to the current location.</span>
+<span class="sd">      The default choice is &quot;rating and review counts&quot;.</span>
+<span class="sd">    result_len : int</span>
+<span class="sd">      Optional. The number of the top-ranked restaurants to return. The default value is 5.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.core.frame.DataFrame</span>
+<span class="sd">      A sub-dataframe of the original input consisting the top restaurants from the searching results.</span>
+<span class="sd">    </span>
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; list_of_restaurant = yelpgoogletool.SearchRestaurant(location = &quot;Columbia University, NYC&quot;,list_len=40)</span>
+<span class="sd">    &gt;&gt;&gt; yelpgoogletool.FindBestRestaurants(list_of_restaurant)</span>
+<span class="sd">       index                        name                      id  distance                                    location price         phone  rating  review_count</span>
+<span class="sd">    0     33                     La Shuk  87WfLan3_7K_OYPYd5zUIA       1.5      1569 Lexington Ave, New York, NY 10029    $$  +12122890089     4.5           370</span>
+<span class="sd">    1     20    Cinar Turkish Restaurant  fcZslhOdQJgRdi04UMf0PA       1.6  677 Palisade Ave, Cliffside Park, NJ 07010    $$  +12019415650     4.5           319</span>
+<span class="sd">    2     27                   Arco Cafe  f_1BjTChf6bobreSRpqhsw       0.7       886 Amsterdam Ave, New York, NY 10025    $$  +16467819080     4.5           267</span>
+<span class="sd">    3      0  The Tang - Upper West Side  TzhAlljC_843JO7UDDUIaQ       0.6       920 Amsterdam Ave, New York, NY 10025    $$  +16465967970     4.5           215</span>
+<span class="sd">    4     16                        Clay  9fydXI0fj2s-EmlF7vm8Og       0.5       553 Manhattan Ave, New York, NY 10027   $$$  +12127291850     4.5           149</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check the validity of the input</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">list_of_restaurants</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()),</span> <span class="s2">&quot;&#39;list_of_restaurants&#39; should be a pandas Dataframe!&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">by</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;&#39;by&#39; should be a string!&quot;</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">result_len</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">result_len</span> <span class="o">&lt;=</span> <span class="mi">20</span><span class="p">),</span> <span class="s2">&quot;&#39;result_len&#39; should not exceed 20!&quot;</span>
+
+    <span class="c1"># In these two cases, there are not likely to have tied records</span>
+    <span class="k">if</span> <span class="n">by</span> <span class="o">==</span> <span class="s2">&quot;review count&quot;</span><span class="p">:</span>
+        <span class="n">sorted_list</span> <span class="o">=</span> <span class="n">list_of_restaurants</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;review_count&quot;</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">sorted_list</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">result_len</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">by</span> <span class="o">==</span> <span class="s2">&quot;distance&quot;</span><span class="p">:</span>
+        <span class="n">sorted_list</span> <span class="o">=</span> <span class="n">list_of_restaurants</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">sorted_list</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">result_len</span><span class="p">])</span>
+    
+    <span class="c1"># If the primary variable for sorting is rating, a secondary criterion is need to deal with the tie-rank situation</span>
+    <span class="c1"># Sort the list by rating</span>
+    <span class="k">if</span> <span class="n">by</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;rating and review count&quot;</span><span class="p">,</span><span class="s2">&quot;rating and distance&quot;</span><span class="p">]:</span>
+        <span class="n">sorted_list</span> <span class="o">=</span> <span class="n">list_of_restaurants</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;rating&quot;</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Get all the unique rating in the data</span>
+        <span class="n">rating_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">list_of_restaurants</span><span class="p">[</span><span class="s1">&#39;rating&#39;</span><span class="p">]))</span>
+        <span class="n">rating_list</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Get the best restaurants</span>
+        <span class="n">count_rating</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">result_list</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_list</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">result_len</span><span class="p">:</span>
+            <span class="n">temp_rating</span> <span class="o">=</span> <span class="n">rating_list</span><span class="p">[</span><span class="n">count_rating</span><span class="p">]</span>
+            <span class="n">temp_list</span> <span class="o">=</span> <span class="n">list_of_restaurants</span><span class="p">[</span><span class="n">list_of_restaurants</span><span class="p">[</span><span class="s1">&#39;rating&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">temp_rating</span><span class="p">]</span>
+            <span class="c1"># When sorting by review_count, sort in descending order; when sorting by distance, sort in ascending order</span>
+            <span class="k">if</span> <span class="n">by</span> <span class="o">==</span> <span class="s2">&quot;rating and review count&quot;</span><span class="p">:</span>
+                <span class="n">temp_list</span> <span class="o">=</span> <span class="n">temp_list</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;review_count&quot;</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">temp_list</span> <span class="o">=</span> <span class="n">temp_list</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span><span class="p">,</span> <span class="n">ascending</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_list</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">temp_list</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">result_len</span><span class="p">:</span>
+                <span class="c1"># Take only the top (result_len - len(result_df.index)) records</span>
+                <span class="n">temp_list</span> <span class="o">=</span> <span class="n">temp_list</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="n">result_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_list</span><span class="o">.</span><span class="n">index</span><span class="p">))]</span>
+            <span class="n">result_list</span> <span class="o">=</span> <span class="n">result_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_list</span><span class="p">)</span>
+            <span class="n">count_rating</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">result_list</span><span class="o">.</span><span class="n">reset_index</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="GetDirection"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.GetDirection">[docs]</a><span class="k">def</span> <span class="nf">GetDirection</span><span class="p">(</span><span class="n">restaurant_id</span><span class="p">,</span>
+                 <span class="n">google_key</span> <span class="o">=</span> <span class="n">google_key</span><span class="p">,</span>
+                 <span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">,</span>
+                 <span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;transit&quot;</span><span class="p">,</span>
+                 <span class="n">start_location</span> <span class="o">=</span> <span class="s2">&quot;Union Square, New York, NY 10003&quot;</span><span class="p">,</span>
+                 <span class="n">start_latitude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">start_longitude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Print out the navigation from the current location a specific restaurant.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    restaurant_id : str</span>
+<span class="sd">      Required. The unique identifier of the restaurant.</span>
+<span class="sd">    google_key : str</span>
+<span class="sd">      Required. The API key for Google Direction API.</span>
+<span class="sd">    yelp_key : str</span>
+<span class="sd">      Required. The API key for Yelp fusion API.</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">      Required. The name of the restaurant. Do not need to be exact.</span>
+<span class="sd">    mode : str</span>
+<span class="sd">      Optional. The mode of transportation. Should be one of &quot;driving&quot; (default), &quot;walking&quot; and &quot;transit&quot;.</span>
+<span class="sd">    start_location : str</span>
+<span class="sd">      Optional. A string describe the address of the location as the origin.</span>
+<span class="sd">    start_latitude : str</span>
+<span class="sd">      Required if `start_location` is not specified. The latitude of the origin.</span>
+<span class="sd">    start_longitude : str</span>
+<span class="sd">      Required if `start_location` is not specified. The longitude of the origin.</span>
+
+<span class="sd">    </span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">      A string that stores the detailed instruction to get to the restaurant.</span>
+<span class="sd">    </span>
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; print(yelpgoogletool.GetDirection(&quot;87WfLan3_7K_OYPYd5zUIA&quot;,start_location = &quot;Columbia University, NYC&quot;, mode = &quot;transit&quot;))</span>
+
+
+<span class="sd">    ****************************************************************************************************</span>
+<span class="sd">    Starting location:            New York, NY 10027, USA</span>
+<span class="sd">    Destination location:         1569 Lexington Ave, New York, NY 10029, USA</span>
+<span class="sd">    Total distance:               2.3 mi</span>
+<span class="sd">    ****************************************************************************************************</span>
+<span class="sd">    Transportation mode:          transit</span>
+<span class="sd">    Total duration:               37 mins</span>
+<span class="sd">    ****************************************************************************************************</span>
+<span class="sd">    Detailed direction to the restaurant:</span>
+
+<span class="sd">    Step 1: Walk to Broadway/W 114 St (0.2 mi, 4 mins)</span>
+<span class="sd">          - Head northwest (144 ft, 1 min)</span>
+<span class="sd">          - Turn left toward W 114th St. Take the stairs (0.1 mi, 2 mins)</span>
+<span class="sd">          - Turn right onto W 114th St (338 ft, 1 min)</span>
+<span class="sd">          - Turn left onto Broadway. Destination will be on the right (82 ft, 1 min)</span>
+<span class="sd">    Step 2: Bus towards Midtown 32 St &amp; 5 Av Via Bway 5 Av (1.7 mi, 22 mins)</span>
+<span class="sd">          - Vehicle:                   Bus M4</span>
+<span class="sd">          - Departure stop:            Broadway/W 114 St</span>
+<span class="sd">          - Arrival stop:              5 Av/E 102 St</span>
+<span class="sd">          - Number of stops:           13</span>
+
+<span class="sd">    Step 3: Walk to 1569 Lexington Ave, New York, NY 10029, USA (0.4 mi, 9 mins)</span>
+<span class="sd">          - Head northeast on 5th Ave/Museum Mile toward E 102nd St (141 ft, 1 min)</span>
+<span class="sd">          - Turn right onto E 102nd St (0.3 mi, 6 mins)</span>
+<span class="sd">          - Turn right onto Lexington Ave. Destination will be on the right (417 ft, 2 mins)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+     <span class="c1"># Check the validity of input</span>
+    <span class="k">assert</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;driving&quot;</span><span class="p">,</span><span class="s2">&quot;walking&quot;</span><span class="p">,</span><span class="s2">&quot;transit&quot;</span><span class="p">],</span> <span class="s2">&quot;Invalid &#39;mode&#39;!&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">restaurant_id</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;The parameter &#39;restaurant_id&#39; should be a string!&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">,</span> <span class="s2">&quot;The parameter &#39;verbose&#39; should be a boolean variable!&quot;</span>
+    <span class="c1"># Check whether longitude and latitude are speciefied or not specified at the same time</span>
+    <span class="n">longlat_input_checker</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_longitude</span> <span class="o">==</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">start_longitude</span> <span class="o">==</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">longlat_input_checker</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Either both or neither of &#39;stlongitude&#39; and &#39;latitude&#39; should be specified!&quot;</span>
+    
+    <span class="c1"># Get the start location if start_latitude and start_longitude are specified</span>
+    <span class="k">if</span> <span class="n">longlat_input_checker</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start_location</span> <span class="o">!=</span> <span class="s2">&quot;Union Square, New York, NY 10003&quot;</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The parameter &#39;start_location&#39; is ignored when longitude and latitude are specified.&quot;</span><span class="p">)</span>
+        <span class="n">start_location</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">start_latitude</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">start_longitude</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;driving&quot;</span> <span class="ow">and</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The parameter &#39;verbose&#39; is ignored when &#39;mode&#39; is &#39;driving&#39;.&quot;</span><span class="p">)</span>
+    <span class="c1"># Get the destination location</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://api.yelp.com/v3/businesses/&quot;</span> <span class="o">+</span> <span class="n">restaurant_id</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Authorization&quot;</span><span class="p">:</span><span class="n">yelp_key</span><span class="p">}</span>
+    <span class="n">rspn_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="n">restaurant_location</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rspn_json</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">][</span><span class="s2">&quot;display_address&quot;</span><span class="p">])</span>
+    
+    <span class="c1"># Get the direction</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://maps.googleapis.com/maps/api/directions/json&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;origin&quot;</span><span class="p">:</span><span class="n">start_location</span><span class="p">,</span><span class="s2">&quot;destination&quot;</span><span class="p">:</span><span class="n">restaurant_location</span><span class="p">,</span><span class="s2">&quot;mode&quot;</span><span class="p">:</span><span class="n">mode</span><span class="p">,</span><span class="s2">&quot;key&quot;</span><span class="p">:</span><span class="n">google_key</span><span class="p">}</span>
+    <span class="n">direction_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    
+    <span class="c1"># Initialize a string for store detailed instruction</span>
+    <span class="n">direction_str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1"># start address</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Starting location:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span> <span class="o">+</span> <span class="n">direction_json</span><span class="p">[</span><span class="s1">&#39;routes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;legs&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;start_address&#39;</span><span class="p">]</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1"># destination address</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Destination location:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span> <span class="o">+</span> <span class="n">direction_json</span><span class="p">[</span><span class="s1">&#39;routes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;legs&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;end_address&#39;</span><span class="p">]</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1"># distance</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Total distance:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span> <span class="o">+</span> <span class="n">direction_json</span><span class="p">[</span><span class="s1">&#39;routes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;legs&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;distance&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;*&quot;</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1"># transportation mode</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Transportation mode:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span> <span class="o">+</span> <span class="n">mode</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1">############</span>
+    <span class="c1"># duration</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Total duration:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span> <span class="o">+</span> <span class="n">direction_json</span><span class="p">[</span><span class="s1">&#39;routes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;legs&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;duration&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1"># store steps, travel_steps is a list of steps</span>
+    <span class="n">travel_steps</span> <span class="o">=</span> <span class="n">direction_json</span><span class="p">[</span><span class="s1">&#39;routes&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;legs&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;steps&#39;</span><span class="p">]</span>
+    
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;*&quot;</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Detailed direction to the restaurant: </span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="c1"># Print instructions</span>
+    <span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">travel_steps</span><span class="p">:</span>
+        <span class="n">step_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">instruction</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;div[^&gt;]*&gt;&#39;</span><span class="p">,</span><span class="s1">&#39;. &#39;</span><span class="p">,</span><span class="n">step</span><span class="p">[</span><span class="s1">&#39;html_instructions&#39;</span><span class="p">])</span>
+        <span class="n">instruction</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;[^&gt;]*&gt;&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">instruction</span><span class="p">)</span>
+        <span class="n">instruction</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&amp;nbsp;&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">instruction</span><span class="p">)</span>
+        <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;Step &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">step_count</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="n">instruction</span> <span class="o">+</span><span class="s2">&quot; (&quot;</span> <span class="o">+</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span> <span class="o">+</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;)&quot;</span>
+        <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;travel_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;WALKING&quot;</span> <span class="ow">and</span> <span class="n">verbose</span>  <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;steps&#39;</span> <span class="ow">in</span> <span class="n">step</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">substep_list</span> <span class="o">=</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;steps&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">substep</span> <span class="ow">in</span> <span class="n">substep_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;html_instructions&#39;</span> <span class="ow">in</span> <span class="n">substep</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">sub_instruction</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;div[^&gt;]*&gt;&#39;</span><span class="p">,</span><span class="s1">&#39;. &#39;</span><span class="p">,</span><span class="n">substep</span><span class="p">[</span><span class="s1">&#39;html_instructions&#39;</span><span class="p">])</span>
+                    <span class="n">sub_instruction</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;[^&gt;]*&gt;&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">sub_instruction</span><span class="p">)</span>
+                    <span class="n">sub_instruction</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&amp;nbsp;&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">sub_instruction</span><span class="p">)</span>
+                    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s1">&#39;      - &#39;</span> <span class="o">+</span> <span class="n">sub_instruction</span> <span class="o">+</span><span class="s2">&quot; (&quot;</span> <span class="o">+</span> <span class="n">substep</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span> <span class="o">+</span> <span class="n">substep</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;)&quot;</span>
+                    <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;travel_mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;TRANSIT&quot;</span> <span class="ow">and</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;      - Vehicle:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">35</span><span class="p">)</span> <span class="o">+</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;transit_details&#39;</span><span class="p">][</span><span class="s1">&#39;line&#39;</span><span class="p">][</span><span class="s1">&#39;vehicle&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;transit_details&#39;</span><span class="p">][</span><span class="s1">&#39;line&#39;</span><span class="p">][</span><span class="s1">&#39;short_name&#39;</span><span class="p">]</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;      - Departure stop:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">35</span><span class="p">)</span> <span class="o">+</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;transit_details&#39;</span><span class="p">][</span><span class="s1">&#39;departure_stop&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;      - Arrival stop:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">35</span><span class="p">)</span> <span class="o">+</span> <span class="n">step</span><span class="p">[</span><span class="s1">&#39;transit_details&#39;</span><span class="p">][</span><span class="s1">&#39;arrival_stop&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;      - Number of stops:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">35</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">step</span><span class="p">[</span><span class="s1">&#39;transit_details&#39;</span><span class="p">][</span><span class="s1">&#39;num_stops&#39;</span><span class="p">])</span>
+            <span class="n">direction_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">direction_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GetReviews"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.GetReviews">[docs]</a><span class="k">def</span> <span class="nf">GetReviews</span><span class="p">(</span><span class="n">restaurant_id</span><span class="p">,</span> <span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get three most recent review for a specific restaurant and store them in a Dataframe. It is recommended to pass the result further to `review_report()` function for a more readable output.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    restaurant_id : str</span>
+<span class="sd">      Required. The unique identifier of the restaurant.</span>
+<span class="sd">    yelp_key : str</span>
+<span class="sd">      Optional. The API key for Yelp fusion API.</span>
+<span class="sd">      </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.core.frame.DataFrame</span>
+<span class="sd">      A pandas dataframe that stores basic information about reviews on the restaurant.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># set parameters for searching</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://api.yelp.com/v3/businesses/&quot;</span> <span class="o">+</span> <span class="n">restaurant_id</span> <span class="o">+</span> <span class="s2">&quot;/reviews&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Authorization&quot;</span><span class="p">:</span><span class="n">yelp_key</span><span class="p">}</span>
+    <span class="n">rspn_json</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="c1"># parse json response from Fusion API</span>
+    <span class="n">review_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">review</span> <span class="ow">in</span> <span class="n">rspn_json</span><span class="p">[</span><span class="s1">&#39;reviews&#39;</span><span class="p">]:</span>
+        <span class="n">review_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">review</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">],</span>
+                                   <span class="n">review</span><span class="p">[</span><span class="s1">&#39;time_created&#39;</span><span class="p">],</span>
+                                   <span class="n">review</span><span class="p">[</span><span class="s1">&#39;rating&#39;</span><span class="p">],</span>
+                                   <span class="n">review</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">),</span>
+                                   <span class="n">review</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]])</span>
+        <span class="n">review_df</span> <span class="o">=</span> <span class="n">review_df</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">review_series</span><span class="p">,</span><span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># rename the dataframe for easier reference</span>
+    <span class="n">review_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span><span class="s2">&quot;Date&quot;</span><span class="p">,</span><span class="s2">&quot;Rating&quot;</span><span class="p">,</span><span class="s2">&quot;Review&quot;</span><span class="p">,</span><span class="s2">&quot;Url&quot;</span><span class="p">]</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">review_df</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="review_report"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.review_report">[docs]</a><span class="k">def</span> <span class="nf">review_report</span><span class="p">(</span><span class="n">df_reviews</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Print the reviews in a more reader-friendly format.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df_reviews : pandas.core.frame.DataFrame</span>
+<span class="sd">      Required. A pandas dataframe stores basic information about reviews on the restaurant. It is typically the output from `GetReviews()` function.</span>
+<span class="sd">   </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">      </span>
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; df_review = yelpgoogletool.GetReviews(&quot;87WfLan3_7K_OYPYd5zUIA&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; yelpgoogletool.review_report(df_review)</span>
+<span class="sd">    ****************************************************************************************************</span>
+
+<span class="sd">    On 2019-11-10 13:08:20 Glenn C. gave a rating of 5.0 and said:</span>
+
+<span class="sd">    A little bit of a note: Their website is down but you can peruse their menu on Seamless though I assume as usual the prices are a bit higher. I also went...</span>
+
+<span class="sd">    See more: https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=U5sggshQnN383II6pJYQJA&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA</span>
+
+<span class="sd">    ****************************************************************************************************</span>
+
+<span class="sd">    On 2020-02-29 13:53:53 Victoria C. gave a rating of 4.0 and said:</span>
+
+<span class="sd">    I took a weekend jaunt to NY recently and had a lovely Moroccan dinner in the Upper East Side. My friend and I split the Vegan Platter as an appetizer,...</span>
+
+<span class="sd">    See more: https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=jGbjm-fdE04po99ZqD7DcQ&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA</span>
+
+<span class="sd">    ****************************************************************************************************</span>
+
+<span class="sd">    On 2019-08-24 05:28:50 Kevin W. gave a rating of 5.0 and said:</span>
+
+<span class="sd">    Overall an amazing restaurant. It&#39;s small and quaint, very hole in the wall feel, and delicious. The vegan platter is amazing and even better when dining in...</span>
+
+<span class="sd">    See more: https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=-1vyZ3LUBdQlyNJR1v7cww&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">df_reviews</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*&quot;</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;On &quot;</span> <span class="o">+</span> <span class="n">df_reviews</span><span class="p">[</span><span class="s1">&#39;Date&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">df_reviews</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; gave a rating of &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">df_reviews</span><span class="p">[</span><span class="s1">&#39;Rating&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>  <span class="o">+</span> <span class="s2">&quot; and said:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">df_reviews</span><span class="p">[</span><span class="s1">&#39;Review&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;See more: &quot;</span> <span class="o">+</span> <span class="n">df_reviews</span><span class="p">[</span><span class="s1">&#39;Url&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Where2Eat"><a class="viewcode-back" href="../../source/yelpgoogletool.html#yelpgoogletool.yelpgoogletool.Where2Eat">[docs]</a><span class="k">def</span> <span class="nf">Where2Eat</span><span class="p">(</span><span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">,</span> <span class="n">google_key</span> <span class="o">=</span> <span class="n">google_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An interactive function that assist the user to decide where to have dinner. The function wraps up almost all the functionalities of the package. It can</span>
+<span class="sd">     - Search restaurants according to various criteria including searching keywords, location, ditance from current location, etc.</span>
+<span class="sd">     - Sort a list of restaurants and find the best ones</span>
+<span class="sd">     - Print recent reviews on Yelp</span>
+<span class="sd">     - Generate a navigation instruction to a restaurant of user&#39;s selection</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    yelp_key : str</span>
+<span class="sd">      Required. The API key for Yelp fusion API.</span>
+<span class="sd">    google_key : str</span>
+<span class="sd">      Required. The API key for Google Direction API.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">currentloc</span> <span class="o">=</span> <span class="n">geocoder</span><span class="o">.</span><span class="n">ip</span><span class="p">(</span><span class="s1">&#39;me&#39;</span><span class="p">)</span>
+    <span class="n">location_check</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;The geographic coordinate of your current location is &quot;</span> <span class="o">+</span>
+                           <span class="nb">str</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">currentloc</span><span class="o">.</span><span class="n">latlng</span><span class="p">))</span> <span class="o">+</span>
+                           <span class="s2">&quot;. Do you want to search restaurants near this location? (Y/N)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">location_check</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span><span class="s1">&#39;N&#39;</span><span class="p">],</span> <span class="s2">&quot;invalid input!&quot;</span>
+    <span class="k">if</span> <span class="n">location_check</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+        <span class="n">coord_or_name</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
+        <span class="n">latitude</span> <span class="o">=</span> <span class="n">currentloc</span><span class="o">.</span><span class="n">latlng</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">longitude</span> <span class="o">=</span> <span class="n">currentloc</span><span class="o">.</span><span class="n">latlng</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">location_check</span> <span class="o">==</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Please input a new location for the restaurant searching. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">coord_or_name</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Which of the following you would you like to provide: </span><span class="se">\n</span><span class="s2">&quot;</span>\
+                              <span class="s2">&quot;1. Georeference coordinate </span><span class="se">\n</span><span class="s2">2. The address of the current location </span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="s2">&quot;Please type (1/2)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">coord_or_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">],</span> <span class="s2">&quot;invalid input!&quot;</span>
+        <span class="c1"># Input the location manually</span>
+        <span class="k">if</span> <span class="n">coord_or_name</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">latitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Please provide the latitude:&quot;</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Invalid input. The latitude should be a number.&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">latitude</span><span class="o">&gt;=-</span><span class="mi">180</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">latitude</span><span class="o">&lt;=</span><span class="mi">180</span><span class="p">),</span> <span class="s2">&quot;Invalid input. The latitude should be between -180 and 180&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">longitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Please provide the longitude:&quot;</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Invalid input. The longitude should be a number.&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">longitude</span><span class="o">&gt;=-</span><span class="mi">180</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">longitude</span><span class="o">&lt;=</span><span class="mi">180</span><span class="p">),</span> <span class="s2">&quot;Invalid input. The longitude should be between -180 and 180&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Please provide the current address:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Input parameters for the restaurant searching</span>
+    <span class="n">searching_keywords</span> <span class="o">=</span>  <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Please input some keyword(s) for restaurant searching.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">distance_max</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">What is the maximum distance in miles that you would accept?&quot;</span>\
+                         <span class="s2">&quot; Please input a positive integer smaller or equal to 10.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1609</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Invalid input. Please input an integer smaller or equal to 10.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">distance_max</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">distance_max</span> <span class="o">&lt;=</span> <span class="mi">20000</span><span class="p">),</span> <span class="s2">&quot;Invalid input. Please input a positive integer smaller or equal to 10.</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="n">price</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Please indicate the pricing levels of the restaurant you want to consider.&quot;</span>\
+                  <span class="s2">&quot; In particular, the number 1 represents the lowest level and number 4 represents the highest level.&quot;</span>\
+                  <span class="s2">&quot; Multiple levels are allowed by a list of comma delimited pricing levels, e.g. &#39;1,2,3&#39; will&quot;</span>\
+                  <span class="s2">&quot; include restaurants with pricing levels 1, 2 and 3.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Input parameters for the restaurant ranking</span>
+    <span class="n">sorting_criterion</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The searching result will be sorted and only the best restaurants will be reported.&quot;</span>\
+                              <span class="s2">&quot;Please choose one of the following criteria for sorting:</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                              <span class="s2">&quot;1. Sort by the Yelp rating. In the case that ratings are tied, use the number of reviews as&quot;</span>\
+                              <span class="s2">&quot; the second criterion</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                              <span class="s2">&quot;2. Sort by the Yelp rating. In the case that ratings are tied, use the distance to current&quot;</span>\
+                              <span class="s2">&quot; location as the second criterion</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                              <span class="s2">&quot;3. Sort by the number of reviews</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                              <span class="s2">&quot;4. Sort by the distance to the current location </span><span class="se">\n</span><span class="s2"> (1/2/3/4) </span><span class="se">\n</span><span class="s2">&quot;</span>\
+                             <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">sorting_criterion</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">,</span><span class="s1">&#39;4&#39;</span><span class="p">],</span> <span class="s2">&quot;Invalid input!&quot;</span>
+
+    <span class="k">if</span> <span class="n">sorting_criterion</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span><span class="p">:</span>
+        <span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;rating and review count&quot;</span>
+    <span class="k">if</span> <span class="n">sorting_criterion</span> <span class="o">==</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span>
+        <span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;rating and distance&quot;</span>
+    <span class="k">if</span> <span class="n">sorting_criterion</span> <span class="o">==</span> <span class="s2">&quot;3&quot;</span><span class="p">:</span>
+        <span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;review count&quot;</span>
+    <span class="k">if</span> <span class="n">sorting_criterion</span> <span class="o">==</span> <span class="s2">&quot;4&quot;</span><span class="p">:</span>
+        <span class="n">by</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">result_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">How many of the top-ranked restaurants do you want to have a look? Please input&quot;</span>\
+                          <span class="s2">&quot; an integer smaller or equal to 20. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Invalid input. Please input an integer smaller or equal to 20.&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">result_len</span> <span class="o">&lt;=</span> <span class="mi">20</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">result_len</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;Invalid input. Please input an integer smaller or equal to 20.&quot;</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> Searching in process...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Perform the restaurant searching</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">coord_or_name</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">location_check</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">):</span>
+        <span class="n">list_of_restaurants</span> <span class="o">=</span> <span class="n">SearchRestaurant</span><span class="p">(</span><span class="n">yelp_key</span><span class="o">=</span><span class="n">yelp_key</span><span class="p">,</span>
+                                               <span class="n">searching_keywords</span> <span class="o">=</span> <span class="n">searching_keywords</span><span class="p">,</span>
+                                               <span class="n">latitude</span> <span class="o">=</span> <span class="n">latitude</span><span class="p">,</span>
+                                               <span class="n">longitude</span> <span class="o">=</span> <span class="n">longitude</span><span class="p">,</span>
+                                               <span class="n">distance_max</span> <span class="o">=</span> <span class="n">distance_max</span><span class="p">,</span>
+                                               <span class="n">price</span> <span class="o">=</span> <span class="n">price</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">list_of_restaurants</span> <span class="o">=</span> <span class="n">SearchRestaurant</span><span class="p">(</span><span class="n">yelp_key</span><span class="o">=</span><span class="n">yelp_key</span><span class="p">,</span>
+                                               <span class="n">searching_keywords</span> <span class="o">=</span> <span class="n">searching_keywords</span><span class="p">,</span>
+                                               <span class="n">location</span> <span class="o">=</span> <span class="n">location</span><span class="p">,</span>
+                                               <span class="n">distance_max</span> <span class="o">=</span> <span class="n">distance_max</span><span class="p">,</span>
+                                               <span class="n">price</span> <span class="o">=</span> <span class="n">price</span><span class="p">)</span>
+
+
+
+    <span class="c1"># Find the best restaurants</span>
+    <span class="n">df_BestRestaurant</span> <span class="o">=</span> <span class="n">FindBestRestaurants</span><span class="p">(</span><span class="n">list_of_restaurants</span> <span class="o">=</span> <span class="n">list_of_restaurants</span><span class="p">,</span>
+                                            <span class="n">by</span> <span class="o">=</span> <span class="n">by</span><span class="p">,</span>
+                                            <span class="n">result_len</span> <span class="o">=</span> <span class="n">result_len</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The top &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">result_len</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; restaurants from the searching results:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># print the best restaurants</span>
+    <span class="n">df_BestRestaurant_to_Show</span> <span class="o">=</span> <span class="n">df_BestRestaurant</span><span class="p">[[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="s1">&#39;rating&#39;</span><span class="p">,</span><span class="s1">&#39;review_count&#39;</span><span class="p">,</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span><span class="s1">&#39;price&#39;</span><span class="p">]]</span>
+    <span class="n">df_BestRestaurant_to_Show</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span><span class="s2">&quot;Rating&quot;</span><span class="p">,</span><span class="s2">&quot;Review count&quot;</span><span class="p">,</span><span class="s2">&quot;Distance (in miles)&quot;</span><span class="p">,</span><span class="s2">&quot;Price&quot;</span><span class="p">]</span>
+    <span class="n">df_BestRestaurant_to_Show</span> <span class="o">=</span> <span class="n">df_BestRestaurant_to_Show</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">df_BestRestaurant_to_Show</span><span class="p">)</span>
+
+    <span class="c1"># print reviews</span>
+    <span class="n">review_request</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Would you like to read some recent reviews of these restaurants? (Y/N)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">review_request</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span><span class="s1">&#39;N&#39;</span><span class="p">],</span> <span class="s2">&quot;Invalid input!&quot;</span>
+    <span class="k">while</span> <span class="n">review_request</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+        <span class="n">restaurant_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Please type the index at the begining of the row of&quot;</span>\
+                                     <span class="s2">&quot; the restaurant whose reviews you are interested.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
+        <span class="n">df_review</span> <span class="o">=</span> <span class="n">GetReviews</span><span class="p">(</span><span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">,</span>
+                               <span class="n">restaurant_id</span> <span class="o">=</span> <span class="n">df_BestRestaurant</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">][</span><span class="n">restaurant_index</span><span class="p">])</span>
+        <span class="n">review_report</span><span class="p">(</span><span class="n">df_review</span><span class="p">)</span>
+        <span class="n">review_request</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Would you like to read more recent reviews of other restaurants? (Y/N)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">review_request</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span><span class="s1">&#39;N&#39;</span><span class="p">],</span> <span class="s2">&quot;Invalid input!&quot;</span>
+    
+    <span class="c1"># user input the choice of restaurant</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">restaurant_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Which restaurant from the list do you prefer?&quot;</span>\
+                                <span class="s2">&quot; Please type the index at the begining of the corresponding row.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Invalid input. Please input the integer-valued index!&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">restaurant_index</span> <span class="o">&lt;</span> <span class="n">result_len</span><span class="p">,</span> <span class="s2">&quot;Index out of range!&quot;</span>
+    
+    <span class="n">mode</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Now, let&#39;s see how we can get there... Please input your preferred method of transportation.</span><span class="se">\n</span><span class="s2">&quot;</span>\
+         <span class="s2">&quot;(driving/walking/transit)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+         
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;driving&quot;</span><span class="p">:</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Do you want a detailed version of navigation to the restaurant of choice?&quot;</span>\
+                        <span class="s2">&quot; Type &#39;Y&#39; for a detailed version, &#39;N&#39; for a concise one.  </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="p">(</span><span class="n">verbose</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">restaurant_id</span> <span class="o">=</span> <span class="n">df_BestRestaurant</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">][</span><span class="n">restaurant_index</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The direction to the restaurant is as follows:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">coord_or_name</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">location_check</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">GetDirection</span><span class="p">(</span><span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">,</span>
+                     <span class="n">google_key</span> <span class="o">=</span> <span class="n">google_key</span><span class="p">,</span>
+                     <span class="n">restaurant_id</span><span class="o">=</span><span class="n">restaurant_id</span><span class="p">,</span>
+                     <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                     <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">,</span>
+                     <span class="n">start_latitude</span> <span class="o">=</span> <span class="n">latitude</span><span class="p">,</span>
+                     <span class="n">start_longitude</span> <span class="o">=</span> <span class="n">longitude</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">GetDirection</span><span class="p">(</span><span class="n">yelp_key</span> <span class="o">=</span> <span class="n">yelp_key</span><span class="p">,</span>
+                     <span class="n">google_key</span> <span class="o">=</span> <span class="n">google_key</span><span class="p">,</span>
+                     <span class="n">restaurant_id</span> <span class="o">=</span> <span class="n">restaurant_id</span><span class="p">,</span>
+                     <span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span><span class="p">,</span>
+                     <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">,</span>
+                     <span class="n">start_location</span> <span class="o">=</span> <span class="n">location</span><span class="p">))</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">yelpgoogletool</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, yelpgoogletool.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

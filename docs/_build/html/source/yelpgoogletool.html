@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>yelpgoogletool package &#8212; yelpgoogletool  documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="yelpgoogletool-package">
+<h1>yelpgoogletool package<a class="headerlink" href="#yelpgoogletool-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-yelpgoogletool.yelpgoogletool">
+<span id="yelpgoogletool-yelpgoogletool-module"></span><h2>yelpgoogletool.yelpgoogletool module<a class="headerlink" href="#module-yelpgoogletool.yelpgoogletool" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.ExactRestaurantID">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">ExactRestaurantID</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">restaurant_name</span></em>, <em class="sig-param"><span class="n">location</span></em>, <em class="sig-param"><span class="n">yelp_key</span><span class="o">=</span><span class="default_value">&lt;yelp token&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#ExactRestaurantID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.ExactRestaurantID" title="Permalink to this definition">¶</a></dt>
+<dd><p>Search the unique id of a restaurant by its name and location.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>restaurant_name</strong> (<em>str</em>) – Required. The name of the restaurant. Do not need to be exact.</p></li>
+<li><p><strong>location</strong> (<em>str</em>) – Optional. A string describe the address of the location around which the search is conducted.</p></li>
+<li><p><strong>yelp_key</strong> (<em>str</em>) – Optional. The API key for Yelp fusion API.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A string that serves as the identifier of the restaurant of interest.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">yelpgoogletool</span> <span class="kn">import</span> <span class="n">yelpgoogletool</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">ExactRestaurantID</span><span class="p">(</span><span class="s2">&quot;Peter Luger&quot;</span><span class="p">,</span><span class="s2">&quot;NYC&quot;</span><span class="p">)</span>
+<span class="go">                                   name                                      location</span>
+<span class="go">0                           Peter Luger              178 Broadway, Brooklyn, NY 11211</span>
+<span class="go">1               Peter Luger Steak House       255 Northern Blvd, Great Neck, NY 11021</span>
+<span class="go">2  Del Frisco&#39;s Double Eagle Steakhouse  1221 Ave Of The Americas, New York, NY 10020</span>
+<span class="go">3                DeStefano&#39;s Steakhouse           89 Conselyea St, Brooklyn, NY 11211</span>
+<span class="go">4                 Wolfgang&#39;s Steakhouse                4 Park Ave, New York, NY 10016</span>
+<span class="go">Is the desired restaurant in the list above? (Y/N)</span>
+<span class="go">Y</span>
+<span class="go">Please input the index at the beginning of the row corresponding to the desired restaurant.</span>
+<span class="go">0</span>
+<span class="go">Restaurant found!</span>
+<span class="go">&#39;4yPqqJDJOQX69gC66YUDkA&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.FindBestRestaurants">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">FindBestRestaurants</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_of_restaurants</span></em>, <em class="sig-param"><span class="n">by</span><span class="o">=</span><span class="default_value">'rating and review count'</span></em>, <em class="sig-param"><span class="n">result_len</span><span class="o">=</span><span class="default_value">5</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#FindBestRestaurants"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.FindBestRestaurants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort a list of restaurants and return the top choices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>list_of_restaurants</strong> (<em>pandas.core.frame.DataFrame</em>) – Required. A dataframe of restaurants from which the best ones are looked for. A typical choice is the output from <cite>SearchingRestaurant()</cite> function.</p></li>
+<li><p><strong>by</strong> (<em>str</em>) – <dl class="simple">
+<dt>Optional. A string represent the criterion of sorting. The details are as follows:</dt><dd><ul>
+<li><p>”rating and review counts”: sort by the Yelp rating. In the case that ratings are tied, use the number of reviews as the second criterion;</p></li>
+<li><p>”rating and distance”: sort by the Yelp rating. In the case that ratings are tied, use the distance to current location as the second criterion;</p></li>
+<li><p>”review count”: sort by the number of reviews;</p></li>
+<li><p>”distance”: sort by the distance to the current location.</p></li>
+</ul>
+</dd>
+</dl>
+<p>The default choice is “rating and review counts”.</p>
+</p></li>
+<li><p><strong>result_len</strong> (<em>int</em>) – Optional. The number of the top-ranked restaurants to return. The default value is 5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A sub-dataframe of the original input consisting the top restaurants from the searching results.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.core.frame.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">list_of_restaurant</span> <span class="o">=</span> <span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">SearchRestaurant</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="s2">&quot;Columbia University, NYC&quot;</span><span class="p">,</span><span class="n">list_len</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">FindBestRestaurants</span><span class="p">(</span><span class="n">list_of_restaurant</span><span class="p">)</span>
+<span class="go">   index                        name                      id  distance                                    location price         phone  rating  review_count</span>
+<span class="go">0     33                     La Shuk  87WfLan3_7K_OYPYd5zUIA       1.5      1569 Lexington Ave, New York, NY 10029    $$  +12122890089     4.5           370</span>
+<span class="go">1     20    Cinar Turkish Restaurant  fcZslhOdQJgRdi04UMf0PA       1.6  677 Palisade Ave, Cliffside Park, NJ 07010    $$  +12019415650     4.5           319</span>
+<span class="go">2     27                   Arco Cafe  f_1BjTChf6bobreSRpqhsw       0.7       886 Amsterdam Ave, New York, NY 10025    $$  +16467819080     4.5           267</span>
+<span class="go">3      0  The Tang - Upper West Side  TzhAlljC_843JO7UDDUIaQ       0.6       920 Amsterdam Ave, New York, NY 10025    $$  +16465967970     4.5           215</span>
+<span class="go">4     16                        Clay  9fydXI0fj2s-EmlF7vm8Og       0.5       553 Manhattan Ave, New York, NY 10027   $$$  +12127291850     4.5           149</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.GetDirection">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">GetDirection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">restaurant_id</span></em>, <em class="sig-param"><span class="n">google_key</span><span class="o">=</span><span class="default_value">&lt;google token&gt;</span></em>, <em class="sig-param"><span class="n">yelp_key</span><span class="o">=</span><span class="default_value">&lt;yelp token&gt;</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">'transit'</span></em>, <em class="sig-param"><span class="n">start_location</span><span class="o">=</span><span class="default_value">'Union Square, New York, NY 10003'</span></em>, <em class="sig-param"><span class="n">start_latitude</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">start_longitude</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#GetDirection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.GetDirection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print out the navigation from the current location a specific restaurant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>restaurant_id</strong> (<em>str</em>) – Required. The unique identifier of the restaurant.</p></li>
+<li><p><strong>google_key</strong> (<em>str</em>) – Required. The API key for Google Direction API.</p></li>
+<li><p><strong>yelp_key</strong> (<em>str</em>) – Required. The API key for Yelp fusion API.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Required. The name of the restaurant. Do not need to be exact.</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – Optional. The mode of transportation. Should be one of “driving” (default), “walking” and “transit”.</p></li>
+<li><p><strong>start_location</strong> (<em>str</em>) – Optional. A string describe the address of the location as the origin.</p></li>
+<li><p><strong>start_latitude</strong> (<em>str</em>) – Required if <cite>start_location</cite> is not specified. The latitude of the origin.</p></li>
+<li><p><strong>start_longitude</strong> (<em>str</em>) – Required if <cite>start_location</cite> is not specified. The longitude of the origin.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A string that stores the detailed instruction to get to the restaurant.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">GetDirection</span><span class="p">(</span><span class="s2">&quot;87WfLan3_7K_OYPYd5zUIA&quot;</span><span class="p">,</span><span class="n">start_location</span> <span class="o">=</span> <span class="s2">&quot;Columbia University, NYC&quot;</span><span class="p">,</span> <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;transit&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Starting location:            New York, NY 10027, USA
+Destination location:         1569 Lexington Ave, New York, NY 10029, USA
+Total distance:               2.3 mi
+<strong>************************************************************************************************</strong>
+Transportation mode:          transit
+Total duration:               37 mins
+<strong>************************************************************************************************</strong>
+Detailed direction to the restaurant:</p>
+<dl class="simple">
+<dt>Step 1: Walk to Broadway/W 114 St (0.2 mi, 4 mins)</dt><dd><ul class="simple">
+<li><p>Head northwest (144 ft, 1 min)</p></li>
+<li><p>Turn left toward W 114th St. Take the stairs (0.1 mi, 2 mins)</p></li>
+<li><p>Turn right onto W 114th St (338 ft, 1 min)</p></li>
+<li><p>Turn left onto Broadway. Destination will be on the right (82 ft, 1 min)</p></li>
+</ul>
+</dd>
+<dt>Step 2: Bus towards Midtown 32 St &amp; 5 Av Via Bway 5 Av (1.7 mi, 22 mins)</dt><dd><ul class="simple">
+<li><p>Vehicle:                   Bus M4</p></li>
+<li><p>Departure stop:            Broadway/W 114 St</p></li>
+<li><p>Arrival stop:              5 Av/E 102 St</p></li>
+<li><p>Number of stops:           13</p></li>
+</ul>
+</dd>
+<dt>Step 3: Walk to 1569 Lexington Ave, New York, NY 10029, USA (0.4 mi, 9 mins)</dt><dd><ul class="simple">
+<li><p>Head northeast on 5th Ave/Museum Mile toward E 102nd St (141 ft, 1 min)</p></li>
+<li><p>Turn right onto E 102nd St (0.3 mi, 6 mins)</p></li>
+<li><p>Turn right onto Lexington Ave. Destination will be on the right (417 ft, 2 mins)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.GetReviews">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">GetReviews</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">restaurant_id</span></em>, <em class="sig-param"><span class="n">yelp_key</span><span class="o">=</span><span class="default_value">&lt;yelp token&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#GetReviews"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.GetReviews" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get three most recent review for a specific restaurant and store them in a Dataframe. It is recommended to pass the result further to <cite>review_report()</cite> function for a more readable output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>restaurant_id</strong> (<em>str</em>) – Required. The unique identifier of the restaurant.</p></li>
+<li><p><strong>yelp_key</strong> (<em>str</em>) – Optional. The API key for Yelp fusion API.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pandas dataframe that stores basic information about reviews on the restaurant.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.core.frame.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.ParsingAddress">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">ParsingAddress</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">raw_location_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#ParsingAddress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.ParsingAddress" title="Permalink to this definition">¶</a></dt>
+<dd><p>A supporting function that parses the raw location info from Yelp Fusion API to make it more readable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>raw_location_list</strong> (<em>pandas.core.series.Series</em>) – Required. A pd.Series of dictionaries containing address information in the JSON output from Fusion API.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list that stores more readable result. A typical element from the output list is a string of format: “&lt;street address&gt;, &lt;City&gt;, &lt;State&gt; &lt;ZIP code&gt;”. E.g. “509 Amsterdam Ave, New York, NY 10024”.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.core.series.Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.SearchRestaurant">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">SearchRestaurant</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">yelp_key</span><span class="o">=</span><span class="default_value">&lt;yelp token&gt;</span></em>, <em class="sig-param"><span class="n">searching_keywords</span><span class="o">=</span><span class="default_value">'restaurant'</span></em>, <em class="sig-param"><span class="n">location</span><span class="o">=</span><span class="default_value">'Union Square, New York, NY 10003'</span></em>, <em class="sig-param"><span class="n">longitude</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">latitude</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">distance_max</span><span class="o">=</span><span class="default_value">15000</span></em>, <em class="sig-param"><span class="n">list_len</span><span class="o">=</span><span class="default_value">40</span></em>, <em class="sig-param"><span class="n">price</span><span class="o">=</span><span class="default_value">'1,2,3,4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#SearchRestaurant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.SearchRestaurant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform restaurant searching on Yelp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>yelp_key</strong> (<em>str</em>) – Optional. The API key for Yelp fusion API.</p></li>
+<li><p><strong>searching_keywords</strong> (<em>str</em>) – Optional. The keywords for Yelp searching. If not specified, the general term “restaurant” is searched.</p></li>
+<li><p><strong>location</strong> (<em>str</em>) – Optional. A string describe the address of the location around which the search is conducted.</p></li>
+<li><p><strong>longitude</strong> (<em>float</em>) – Required if location is not specified. The longitude of the current location.</p></li>
+<li><p><strong>latitude</strong> (<em>float</em>) – Required if location is not specified. The latitude of the current location.</p></li>
+<li><p><strong>distance_max</strong> (<em>int</em>) – Optional. A suggested search radius in meters.</p></li>
+<li><p><strong>list_len</strong> (<em>int</em>) – Optional. The number of restaurants to show in the resulting dataframe.</p></li>
+<li><p><strong>price</strong> (<em>str</em>) – Optional. Pricing levels to filter the search result with: 1 = $, 2 = $$, 3 = $$$, 4 = $$$$.
+The price filter can be a list of comma delimited pricing levels. For example, “1, 2, 3” will
+filter the results to show the ones that are $, $$, or $$$.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dataframe that include essential information about the restaurants in the resarching result.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.core.frame.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">yelpgoogletool</span> <span class="kn">import</span> <span class="n">yelpgoogletool</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">SearchRestaurant</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="s2">&quot;Columbia University, NYC&quot;</span><span class="p">,</span><span class="n">list_len</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">                         name                      id  distance                               location price         phone  rating  review_count</span>
+<span class="go">0  The Tang - Upper West Side  TzhAlljC_843JO7UDDUIaQ       0.6  920 Amsterdam Ave, New York, NY 10025    $$  +16465967970     4.5           215</span>
+<span class="go">1                  Calle Ocho  H9GD7km7riFooM0FkdwOPg       0.5      2756 Broadway, New York, NY 10025    $$  +12128735025     4.0          2527</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.Where2Eat">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">Where2Eat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">yelp_key</span><span class="o">=</span><span class="default_value">&lt;yelp token&gt;</span></em>, <em class="sig-param"><span class="n">google_key</span><span class="o">=</span><span class="default_value">&lt;google token&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#Where2Eat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.Where2Eat" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>An interactive function that assist the user to decide where to have dinner. The function wraps up almost all the functionalities of the package. It can</dt><dd><ul class="simple">
+<li><p>Search restaurants according to various criteria including searching keywords, location, ditance from current location, etc.</p></li>
+<li><p>Sort a list of restaurants and find the best ones</p></li>
+<li><p>Print recent reviews on Yelp</p></li>
+<li><p>Generate a navigation instruction to a restaurant of user’s selection</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>yelp_key</strong> (<em>str</em>) – Required. The API key for Yelp fusion API.</p></li>
+<li><p><strong>google_key</strong> (<em>str</em>) – Required. The API key for Google Direction API.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="yelpgoogletool.yelpgoogletool.review_report">
+<code class="sig-prename descclassname">yelpgoogletool.yelpgoogletool.</code><code class="sig-name descname">review_report</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df_reviews</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/yelpgoogletool/yelpgoogletool.html#review_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#yelpgoogletool.yelpgoogletool.review_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the reviews in a more reader-friendly format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>df_reviews</strong> (<em>pandas.core.frame.DataFrame</em>) – Required. A pandas dataframe stores basic information about reviews on the restaurant. It is typically the output from <cite>GetReviews()</cite> function.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df_review</span> <span class="o">=</span> <span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">GetReviews</span><span class="p">(</span><span class="s2">&quot;87WfLan3_7K_OYPYd5zUIA&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">yelpgoogletool</span><span class="o">.</span><span class="n">review_report</span><span class="p">(</span><span class="n">df_review</span><span class="p">)</span>
+<span class="go">****************************************************************************************************</span>
+</pre></div>
+</div>
+<p>On 2019-11-10 13:08:20 Glenn C. gave a rating of 5.0 and said:</p>
+<p>A little bit of a note: Their website is down but you can peruse their menu on Seamless though I assume as usual the prices are a bit higher. I also went…</p>
+<p>See more: <a class="reference external" href="https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=U5sggshQnN383II6pJYQJA&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA">https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=U5sggshQnN383II6pJYQJA&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA</a></p>
+<p>On 2020-02-29 13:53:53 Victoria C. gave a rating of 4.0 and said:</p>
+<p>I took a weekend jaunt to NY recently and had a lovely Moroccan dinner in the Upper East Side. My friend and I split the Vegan Platter as an appetizer,…</p>
+<p>See more: <a class="reference external" href="https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=jGbjm-fdE04po99ZqD7DcQ&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA">https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=jGbjm-fdE04po99ZqD7DcQ&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA</a></p>
+<p>On 2019-08-24 05:28:50 Kevin W. gave a rating of 5.0 and said:</p>
+<p>Overall an amazing restaurant. It’s small and quaint, very hole in the wall feel, and delicious. The vegan platter is amazing and even better when dining in…</p>
+<p>See more: <a class="reference external" href="https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=-1vyZ3LUBdQlyNJR1v7cww&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA">https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&amp;hrid=-1vyZ3LUBdQlyNJR1v7cww&amp;utm_campaign=yelp_api_v3&amp;utm_medium=api_v3_business_reviews&amp;utm_source=86-p603UXQiFKhkB9zhIYA</a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yelpgoogletool">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-yelpgoogletool" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">yelpgoogletool</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conduct.html">Code of Conduct</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, yelpgoogletool.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/source/yelpgoogletool.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
