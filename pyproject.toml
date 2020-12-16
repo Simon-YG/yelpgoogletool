@@ -6,7 +6,7 @@ authors = ["Gan <gy2277@columbia.edu>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 pandas = "^1.1.5"
 requests = "^2.25.0"
 geocoder = "^1.38.1"
