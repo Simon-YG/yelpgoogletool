@@ -87,7 +87,7 @@ def SearchRestaurant(yelp_key = yelp_key,
     
     
     # Check whether the parameters are of valid type
-    longlat_input_checker = (longitude == None) + (longitude == None)
+    longlat_input_checker = (longitude == None) + (latitude == None)
     assert type(searching_keywords) == str, "The parameter 'searching_keywords' should be a string!"
     assert type(location) == str, "The parameter 'location' should be a string!"
     assert (type(longitude) == type(None) or type(longitude) == float), "The parameter 'longitude' should be a float!"
@@ -499,6 +499,10 @@ def Where2Eat(yelp_key = yelp_key, google_key = google_key):
                            str(tuple(currentloc.latlng)) +
                            ". Do you want to search restaurants near this location? (Y/N)\n")
     assert location_check in ['Y','N'], "invalid input!"
+    if location_check == "Y":
+        coord_or_name == '1'
+        latitude = currentloc.latlng[0]
+        longitude = currentloc.latlng[1]
     if location_check == "N":
         print("\nPlease input a new location for the restaurant searching. \n")
         coord_or_name = input("Which of the following you would you like to provide: \n"\
