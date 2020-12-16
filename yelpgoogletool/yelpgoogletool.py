@@ -22,12 +22,12 @@ if yelp_key is None:
 
 def ParsingAddress(raw_location_list):
     """
-    Parse the raw location info from Yelp Fusion API to make it more readable.
+    A supporting function that parses the raw location info from Yelp Fusion API to make it more readable.
 
     Parameters
     ----------
     raw_location_list : pandas.core.series.Series
-      Required. A pd.Series of dictionaries containing address information in the JSON output from Fusion API
+      Required. A pd.Series of dictionaries containing address information in the JSON output from Fusion API.
    
     Returns
     -------
@@ -57,7 +57,7 @@ def SearchRestaurant(yelp_key = yelp_key,
     Parameters
     ----------
     yelp_key : str
-      Required. The API key for Yelp fusion API.
+      Optional. The API key for Yelp fusion API.
     searching_keywords : str
       Optional. The keywords for Yelp searching. If not specified, the general term "restaurant" is searched.
     location : str
@@ -82,7 +82,11 @@ def SearchRestaurant(yelp_key = yelp_key,
 
     Examples
     --------
-    
+    >>> from yelpgoogletool import yelpgoogletool
+    >>> yelpgoogletool.SearchRestaurant(location = "Columbia University, NYC",list_len=2)
+                             name                      id  distance                               location price         phone  rating  review_count
+    0  The Tang - Upper West Side  TzhAlljC_843JO7UDDUIaQ       0.6  920 Amsterdam Ave, New York, NY 10025    $$  +16465967970     4.5           215
+    1                  Calle Ocho  H9GD7km7riFooM0FkdwOPg       0.5      2756 Broadway, New York, NY 10025    $$  +12128735025     4.0          2527
     """
     
     
@@ -162,7 +166,7 @@ def ExactRestaurantID(restaurant_name, location, yelp_key=yelp_key):
     location : str
       Optional. A string describe the address of the location around which the search is conducted.
     yelp_key : str
-      Required. The API key for Yelp fusion API.
+      Optional. The API key for Yelp fusion API.
       
     Returns
     -------
@@ -171,7 +175,20 @@ def ExactRestaurantID(restaurant_name, location, yelp_key=yelp_key):
     
     Example
     -------
-    
+    >>> from yelpgoogletool import yelpgoogletool
+    >>> yelpgoogletool.ExactRestaurantID("Peter Luger","NYC")
+                                       name                                      location
+    0                           Peter Luger              178 Broadway, Brooklyn, NY 11211
+    1               Peter Luger Steak House       255 Northern Blvd, Great Neck, NY 11021
+    2  Del Frisco's Double Eagle Steakhouse  1221 Ave Of The Americas, New York, NY 10020
+    3                DeStefano's Steakhouse           89 Conselyea St, Brooklyn, NY 11211
+    4                 Wolfgang's Steakhouse                4 Park Ave, New York, NY 10016
+    Is the desired restaurant in the list above? (Y/N)
+    Y
+    Please input the index at the beginning of the row corresponding to the desired restaurant.
+    0
+    Restaurant found!
+    '4yPqqJDJOQX69gC66YUDkA'
     
     """
     # Set the parameters for API queries
@@ -214,7 +231,7 @@ def FindBestRestaurants(list_of_restaurants, by = "rating and review count", res
     
     Parameters
     ----------
-    list_of_restaurants: pandas.core.frame.DataFrame
+    list_of_restaurants : pandas.core.frame.DataFrame
       Required. A dataframe of restaurants from which the best ones are looked for. A typical choice is the output from `SearchingRestaurant()` function.
     by : str
       Optional. A string represent the criterion of sorting. The details are as follows:
@@ -233,7 +250,15 @@ def FindBestRestaurants(list_of_restaurants, by = "rating and review count", res
     
     Example
     -------
-    
+    >>> list_of_restaurant = yelpgoogletool.SearchRestaurant(location = "Columbia University, NYC",list_len=40)
+    >>> yelpgoogletool.FindBestRestaurants(list_of_restaurant)
+       index                        name                      id  distance                                    location price         phone  rating  review_count
+    0     33                     La Shuk  87WfLan3_7K_OYPYd5zUIA       1.5      1569 Lexington Ave, New York, NY 10029    $$  +12122890089     4.5           370
+    1     20    Cinar Turkish Restaurant  fcZslhOdQJgRdi04UMf0PA       1.6  677 Palisade Ave, Cliffside Park, NJ 07010    $$  +12019415650     4.5           319
+    2     27                   Arco Cafe  f_1BjTChf6bobreSRpqhsw       0.7       886 Amsterdam Ave, New York, NY 10025    $$  +16467819080     4.5           267
+    3      0  The Tang - Upper West Side  TzhAlljC_843JO7UDDUIaQ       0.6       920 Amsterdam Ave, New York, NY 10025    $$  +16465967970     4.5           215
+    4     16                        Clay  9fydXI0fj2s-EmlF7vm8Og       0.5       553 Manhattan Ave, New York, NY 10027   $$$  +12127291850     4.5           149
+
     """
     # Check the validity of the input
     assert type(list_of_restaurants) == type(pd.DataFrame()), "'list_of_restaurants' should be a pandas Dataframe!"
@@ -315,8 +340,35 @@ def GetDirection(restaurant_id,
     
     Example
     -------
-    
-    
+    >>> print(yelpgoogletool.GetDirection("87WfLan3_7K_OYPYd5zUIA",start_location = "Columbia University, NYC", mode = "transit"))
+
+
+    ****************************************************************************************************
+    Starting location:            New York, NY 10027, USA
+    Destination location:         1569 Lexington Ave, New York, NY 10029, USA
+    Total distance:               2.3 mi
+    ****************************************************************************************************
+    Transportation mode:          transit
+    Total duration:               37 mins
+    ****************************************************************************************************
+    Detailed direction to the restaurant:
+
+    Step 1: Walk to Broadway/W 114 St (0.2 mi, 4 mins)
+          - Head northwest (144 ft, 1 min)
+          - Turn left toward W 114th St. Take the stairs (0.1 mi, 2 mins)
+          - Turn right onto W 114th St (338 ft, 1 min)
+          - Turn left onto Broadway. Destination will be on the right (82 ft, 1 min)
+    Step 2: Bus towards Midtown 32 St & 5 Av Via Bway 5 Av (1.7 mi, 22 mins)
+          - Vehicle:                   Bus M4
+          - Departure stop:            Broadway/W 114 St
+          - Arrival stop:              5 Av/E 102 St
+          - Number of stops:           13
+
+    Step 3: Walk to 1569 Lexington Ave, New York, NY 10029, USA (0.4 mi, 9 mins)
+          - Head northeast on 5th Ave/Museum Mile toward E 102nd St (141 ft, 1 min)
+          - Turn right onto E 102nd St (0.3 mi, 6 mins)
+          - Turn right onto Lexington Ave. Destination will be on the right (417 ft, 2 mins)
+
     """
      # Check the validity of input
     assert mode in ["driving","walking","transit"], "Invalid 'mode'!"
@@ -412,23 +464,19 @@ def GetDirection(restaurant_id,
 
 def GetReviews(restaurant_id, yelp_key = yelp_key):
     """
-    Get three most recent review for a specific restaurant.
+    Get three most recent review for a specific restaurant and store them in a Dataframe. It is recommended to pass the result further to `review_report()` function for a more readable output.
     
     Parameters
     ----------
     restaurant_id : str
       Required. The unique identifier of the restaurant.
     yelp_key : str
-      Required. The API key for Yelp fusion API.
+      Optional. The API key for Yelp fusion API.
       
     Returns
     -------
     pandas.core.frame.DataFrame
       A pandas dataframe that stores basic information about reviews on the restaurant.
-      
-    Example
-    -------
-    
     
     """
     # set parameters for searching
@@ -455,7 +503,7 @@ def review_report(df_reviews):
     Parameters
     ----------
     df_reviews : pandas.core.frame.DataFrame
-      Required. A pandas dataframe stores basic information about reviews on the restaurant. It is typically the output from `GetReviews()` function
+      Required. A pandas dataframe stores basic information about reviews on the restaurant. It is typically the output from `GetReviews()` function.
    
     Returns
     -------
@@ -463,8 +511,32 @@ def review_report(df_reviews):
       
     Example
     -------
-    
-    
+    >>> df_review = yelpgoogletool.GetReviews("87WfLan3_7K_OYPYd5zUIA")
+    >>> yelpgoogletool.review_report(df_review)
+    ****************************************************************************************************
+
+    On 2019-11-10 13:08:20 Glenn C. gave a rating of 5.0 and said:
+
+    A little bit of a note: Their website is down but you can peruse their menu on Seamless though I assume as usual the prices are a bit higher. I also went...
+
+    See more: https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&hrid=U5sggshQnN383II6pJYQJA&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_reviews&utm_source=86-p603UXQiFKhkB9zhIYA
+
+    ****************************************************************************************************
+
+    On 2020-02-29 13:53:53 Victoria C. gave a rating of 4.0 and said:
+
+    I took a weekend jaunt to NY recently and had a lovely Moroccan dinner in the Upper East Side. My friend and I split the Vegan Platter as an appetizer,...
+
+    See more: https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&hrid=jGbjm-fdE04po99ZqD7DcQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_reviews&utm_source=86-p603UXQiFKhkB9zhIYA
+
+    ****************************************************************************************************
+
+    On 2019-08-24 05:28:50 Kevin W. gave a rating of 5.0 and said:
+
+    Overall an amazing restaurant. It's small and quaint, very hole in the wall feel, and delicious. The vegan platter is amazing and even better when dining in...
+
+    See more: https://www.yelp.com/biz/la-shuk-new-york?adjust_creative=86-p603UXQiFKhkB9zhIYA&hrid=-1vyZ3LUBdQlyNJR1v7cww&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_reviews&utm_source=86-p603UXQiFKhkB9zhIYA
+
     """
     for i in range(df_reviews.shape[0]):
         print("*" * 100 + "\n")
@@ -491,7 +563,6 @@ def Where2Eat(yelp_key = yelp_key, google_key = google_key):
     Returns
     -------
     None
-    
     
     """
     currentloc = geocoder.ip('me')
