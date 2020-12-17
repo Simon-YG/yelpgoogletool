@@ -459,7 +459,7 @@ def GetDirection(restaurant_id,
             direction_str += "      - Arrival stop:".ljust(35) + step['transit_details']['arrival_stop']['name']
             direction_str += "\n"
             direction_str += "      - Number of stops:".ljust(35) + str(step['transit_details']['num_stops'])
-            direction_str += "\n\n"
+            direction_str += "\n"
     return(direction_str)
 
 def GetReviews(restaurant_id, yelp_key = yelp_key):
