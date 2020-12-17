@@ -37,11 +37,11 @@ $ export POETRY_YELP_KEY=<Your key for Yelp Fusion API>
 $ export POETRY_GOOGLE_KEY=<Your key for Google Direction API>
 ```
 
-For a quick use, run the function `Where2Eat()` directly and follow the on-screen instructions. Please refer to the [vignette]() for more detailed examples in the various functions in the package.
+For a quick use, run the function `Where2Eat()` directly and follow the on-screen instructions. Please refer to the [vignette](https://github.com/Simon-YG/yelpgoogletool/blob/master/Vignette.ipynb) for more detailed examples in calling the various functions in the package.
 
 ## Documentation
 
-An html document is available [here]()
+An html document is available [here](https://yelpgoogletool.readthedocs.io/en/latest/).
 
 ## Contributors
 
